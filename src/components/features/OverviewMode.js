@@ -224,24 +224,25 @@ export default function OverviewMode() {
                     const displayDate = new Date(e.date);
                     const monthStr = displayDate.toLocaleString('default', { month: 'short' });
                     const dayStr = displayDate.getDate();
+                    const weekday = displayDate.toLocaleString('default', { weekday: 'short' });
 
                     return (
-                      <div key={e.id || i} className="flex-col p-3 rounded-xl border border-primary/10 bg-secondary hover-active gap-2">
-                         <div className="flex justify-between items-center">
-                           <span className="font-medium text-sm text-primary">{e.subject}</span>
-                           <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full" style={{
+                      <div key={e.id || i} className="exam-rest-card">
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{e.subject}</span>
+                           <span className="exam-days-badge" style={{
                              background: e.daysLeft <= 7 ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.06)',
                              color: e.daysLeft <= 7 ? '#F97316' : 'var(--text-muted)'
                            }}>
                              {e.daysLeft}d left
                            </span>
                          </div>
-                         <div className="flex gap-4 text-muted text-xs items-center font-mono">
-                           <div className="flex gap-1 items-center"><Calendar size={12}/><span>{monthStr} {dayStr}</span></div>
-                           <div className="flex gap-1 items-center"><Clock size={12}/><span>{e.time || '13:30 - 16:30'}</span></div>
+                         <div style={{ display: 'flex', gap: '16px', color: 'var(--text-muted)', fontSize: '0.75rem', alignItems: 'center', fontFamily: 'var(--font-mono)', marginTop: '6px' }}>
+                           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Calendar size={12}/><span>{weekday}, {monthStr} {dayStr}</span></div>
+                           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Clock size={12}/><span>{e.time || '13:30 - 16:30'}</span></div>
                          </div>
                          {e.notes && (
-                           <div className="text-muted text-xs p-2 bg-tertiary rounded-md italic">{e.notes}</div>
+                           <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', padding: '6px 8px', background: 'var(--bg-tertiary)', borderRadius: '6px', fontStyle: 'italic', marginTop: '6px' }}>{e.notes}</div>
                          )}
                       </div>
                     );
@@ -340,7 +341,7 @@ export default function OverviewMode() {
         .card { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-lg); }
         .mb-6 { margin-bottom: 24px; } .mb-4 { margin-bottom: 16px; } .mt-6 { margin-top: 24px; }
         .p-4 { padding: 16px; } .p-6 { padding: 24px; } .px-3 { padding-left: 12px; padding-right: 12px; } .py-2 { padding-top: 8px; padding-bottom: 8px; }
-        .gap-2 { gap: 8px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
+        .gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
         .text-xs { font-size: 0.75rem; } .text-sm { font-size: 0.875rem; } .text-lg { font-size: 1.125rem; } .text-xl { font-size: 1.25rem; } .text-4xl { font-size: 2.25rem; line-height: 1; }
         .font-bold { font-weight: 700; } .font-medium { font-weight: 500; }
         .text-secondary { color: var(--text-secondary); } .text-muted { color: var(--text-muted); }
@@ -387,6 +388,22 @@ export default function OverviewMode() {
         }
         @keyframes pulse { 50% { opacity: 0.6; } }
         .animate-pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+        
+        /* ---- Exam Rest Cards ---- */
+        .exam-rest-card {
+          padding: 14px 16px; border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.07);
+          background: var(--bg-secondary);
+          transition: background 150ms, border-color 150ms;
+        }
+        .exam-rest-card:hover {
+          background: var(--bg-glass-hover, rgba(255,255,255,0.04));
+          border-color: rgba(255,255,255,0.12);
+        }
+        .exam-days-badge {
+          font-size: 0.7rem; font-weight: 700; font-family: var(--font-mono);
+          padding: 3px 10px; border-radius: 999px; letter-spacing: 0.02em;
+        }
       `}</style>
     </div>
   );

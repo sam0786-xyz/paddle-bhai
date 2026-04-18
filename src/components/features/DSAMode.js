@@ -11,7 +11,7 @@ import { DSA_TOPICS, DIFFICULTIES } from '@/lib/utils';
 
 export default function DSAMode() {
   const { dsaProblems, addDSAProblem, addXP } = useTasks();
-  const { generate, loading } = useGemini();
+  const { generate, loading, error: apiError } = useGemini();
 
   const [activeTab, setActiveTab] = useState('challenge');
   const [expandedStep, setExpandedStep] = useState(null);
@@ -233,8 +233,14 @@ export default function DSAMode() {
             </div>
 
             <div className="mb-4 p-3 bg-tertiary rounded-md text-xs text-muted">
-              <p>Your AI coach analyzes your solved problems and identifies weak patterns. It will suggest the next problem you should tackle based on NeetCode 150 / Striver patterns with adaptive difficulty.</p>
+              <p>Your AI coach analyzes your solved problems and identifies weak patterns. It adapts to your learning pace and suggests the next problem you should tackle.</p>
             </div>
+
+            {apiError && (
+              <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', fontSize: '0.8rem', color: '#f87171' }}>
+                <strong>⚠ Error:</strong> {apiError.includes('quota') || apiError.includes('429') ? 'API quota exceeded. Wait a minute and try again, or update your API key in .env' : apiError}
+              </div>
+            )}
 
             {!dailyChallenge ? (
               <div className="empty-state text-center text-muted py-10">
@@ -495,12 +501,12 @@ export default function DSAMode() {
         }
 
         /* ---- Step Card ---- */
-        .step-card { transition: all 0.2s ease; }
+        .step-card { transition: all 0.2s ease; margin-bottom: 8px; }
         .step-current { border-color: var(--accent-cyan) !important; box-shadow: 0 0 12px rgba(6,182,212,0.1); }
         .step-locked { opacity: 0.4; pointer-events: none; }
-        .step-header { cursor: pointer; background: none; border: none; color: inherit; padding: 0; }
+        .step-header { cursor: pointer; background: none; border: none; color: inherit; padding: 4px 0; width: 100%; }
         .step-badge {
-          width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
           font-size: 0.75rem; font-weight: 700; background: var(--bg-tertiary); color: var(--text-muted); flex-shrink: 0;
         }
         .step-badge.step-done { background: var(--accent-xp); color: #000; }
@@ -514,9 +520,10 @@ export default function DSAMode() {
 
         /* ---- Topic Card ---- */
         .topic-card {
-          background: var(--bg-tertiary); border-radius: var(--radius-md); padding: 4px 12px; border: 1px solid rgba(255,255,255,0.05);
+          background: var(--bg-tertiary); border-radius: 8px; padding: 8px 14px; border: 1px solid rgba(255,255,255,0.05);
+          margin-bottom: 6px;
         }
-        .topic-card button { background: none; border: none; color: inherit; cursor: pointer; }
+        .topic-card button { background: none; border: none; color: inherit; cursor: pointer; width: 100%; }
 
         /* ---- Problem Row ---- */
         .problem-row {
