@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  // Enable server-side features for PDF parsing
+  serverExternalPackages: ['pdf-parse'],
 };
 
 export default nextConfig;
