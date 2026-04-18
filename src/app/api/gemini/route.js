@@ -3,9 +3,8 @@ import { NextResponse } from 'next/server';
 
 // Model fallback chain: try each in order
 const MODEL_CHAIN = [
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
+  'gemini-flash-latest',
+  'gemini-2.5-pro'
 ];
 
 export async function POST(request) {
@@ -29,7 +28,7 @@ export async function POST(request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    
+
     let text = null;
     let lastError = null;
 
@@ -77,12 +76,13 @@ export async function POST(request) {
     return NextResponse.json({ data: text, raw: text });
   } catch (error) {
     console.error('Gemini API error:', error);
-    
+
     const isQuota = error.message?.includes('429') || error.message?.includes('quota');
     return NextResponse.json(
-      { error: isQuota 
-          ? 'API quota exceeded. Please wait a few minutes or get a new API key at https://aistudio.google.com/apikey' 
-          : (error.message || 'Failed to generate content') 
+      {
+        error: isQuota
+          ? 'API quota exceeded. Please wait a few minutes or get a new API key at https://aistudio.google.com/apikey'
+          : (error.message || 'Failed to generate content')
       },
       { status: isQuota ? 429 : 500 }
     );

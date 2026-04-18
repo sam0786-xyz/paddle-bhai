@@ -447,9 +447,15 @@ export default function DSAMode() {
         .mt-4 { margin-top: 1rem; }
         .pl-4 { padding-left: 1rem; }
         .pl-8 { padding-left: 2rem; }
-        .flex-1 { flex: 1 1 0%; }
-        .flex-col { display: flex; flex-direction: column; }
         .flex { display: flex; }
+        .flex-col { display: flex; flex-direction: column; }
+        .flex-row { display: flex; flex-direction: row; }
+        .flex-1 { flex: 1 1 0%; }
+        .gap-1 { gap: 4px; }
+        .gap-2 { gap: 8px; }
+        .gap-3 { gap: 12px; }
+        .gap-4 { gap: 16px; }
+        .gap-6 { gap: 24px; }
         .grid { display: grid; }
         .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -469,6 +475,17 @@ export default function DSAMode() {
         .mx-auto { margin-left: auto; margin-right: auto; }
         .max-w-2xl { max-width: 42rem; }
         .max-w-md { max-width: 28rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .pl-4 { padding-left: 1rem; }
+        .pl-8 { padding-left: 2rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .p-1 { padding: 0.25rem; }
+        .p-3 { padding: 0.75rem; }
         .overflow-auto { overflow: auto; }
         .overflow-hidden { overflow: hidden; }
         .opacity-50 { opacity: 0.5; }
@@ -476,6 +493,7 @@ export default function DSAMode() {
         .border-primary\\/10 { border-color: rgba(255,255,255,0.1); }
         .border-primary\\/20 { border-color: rgba(255,255,255,0.2); }
         .border { border-width: 1px; }
+        .bg-tertiary { background: var(--bg-tertiary); }
         .bg-green-500 { background: var(--accent-xp); }
         .border-0 { border-width: 0; }
         .absolute { position: absolute; }
@@ -527,9 +545,10 @@ export default function DSAMode() {
 
         /* ---- Problem Row ---- */
         .problem-row {
-          padding: 6px 8px; border-radius: var(--radius-sm, 4px); transition: background 0.15s;
+          padding: 8px 12px; border-radius: 8px; transition: background 0.15s; margin-bottom: 2px;
+          display: flex; justify-content: space-between; align-items: center; width: 100%;
         }
-        .problem-row:hover { background: rgba(255,255,255,0.03); }
+        .problem-row:hover { background: rgba(255,255,255,0.05); }
         .problem-solved { opacity: 0.5; }
         .problem-check {
           width: 20px; height: 20px; border-radius: 4px; border: 2px solid rgba(255,255,255,0.2);
