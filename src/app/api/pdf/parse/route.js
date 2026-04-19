@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import pdfParse from 'pdf-parse';
 
 export async function POST(request) {
   try {
@@ -14,7 +15,6 @@ export async function POST(request) {
     const buffer = Buffer.from(bytes);
 
     // Use pdf-parse to extract text
-    const pdfParse = (await import('pdf-parse')).default;
     const data = await pdfParse(buffer);
 
     return NextResponse.json({

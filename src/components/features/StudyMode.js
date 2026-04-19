@@ -41,13 +41,17 @@ export default function StudyMode() {
       formData.append('file', file);
       
       const res = await fetch('/api/pdf/parse', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Failed to parse PDF');
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Failed to parse PDF: ${errText}`);
+      }
       
       const data = await res.json();
       addProjectContext({ name: file.name, text: data.text, size: file.size });
       addXP(10);
     } catch (err) {
       console.error(err);
+      alert(err.message);
     } finally {
       setUploadLoading(false);
       e.target.value = null;
@@ -232,6 +236,27 @@ export default function StudyMode() {
                   </div>
                 </div>
 
+                {/* Subject Syllabus Progress (New Feature) */}
+                {generatedPlan.subjectSyllabusCompletion && generatedPlan.subjectSyllabusCompletion.length > 0 && (
+                  <div className="mb-4 p-4 bg-tertiary rounded-lg border border-primary/10">
+                    <h4 className="text-sm font-bold text-primary mb-3 flex items-center gap-2"><BookOpen size={14}/> Subject Syllabus Completion</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {generatedPlan.subjectSyllabusCompletion.map((subj, idx) => (
+                        <div key={idx} className="flex-col gap-1">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-medium text-muted">{subj.subject}</span>
+                            <span className="mono-text">{subj.completionPercentage}%</span>
+                          </div>
+                          <div className="checklist-bar-bg" style={{ height: '6px' }}>
+                            <div className="checklist-bar-fill" style={{ width: `${subj.completionPercentage}%`, background: 'var(--accent-cyan)' }}></div>
+                          </div>
+                          <div className="text-[10px] text-muted text-right">{subj.status}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Adaptive Checklist Progress */}
                 <div className="mb-4 p-3 bg-tertiary rounded-lg border border-primary/10">
                   <div className="flex justify-between items-center mb-2">
@@ -291,6 +316,13 @@ export default function StudyMode() {
                                 </div>
                                 {b.resources && (
                                   <div className="text-xs mt-1 resource-tag">{b.resources}</div>
+                                )}
+                                {b.toDoList && b.toDoList.length > 0 && (
+                                  <ul className="mt-2 pl-4 list-disc text-xs text-muted flex-col gap-1">
+                                    {b.toDoList.map((task, tIdx) => (
+                                      <li key={tIdx} className={isChecked ? 'line-through opacity-50' : ''}>{task}</li>
+                                    ))}
+                                  </ul>
                                 )}
                               </div>
                             </div>

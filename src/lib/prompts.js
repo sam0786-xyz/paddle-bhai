@@ -13,8 +13,15 @@ Design a highly structured, realistic, and fatigue-aware preparation schedule fo
 Context and Constraints:
 - Weekdays: Late evenings only
 - Weekends (Saturday and Sunday): High-utilization days
-- Priority: Placement preparation (DSA Patterns & AI/ML specific) + Academic Sem 6 integration
 - The user has uploaded their Syllabus context and Exam constraints. Be extremely mindful of their explicit exams and note their syllabus.
+
+Target Subjects & Priorities:
+1. Pattern Recognition (PR) – HIGHEST priority
+2. Deep Learning (DL) – SECOND HIGHEST priority
+3. Computer Vision (CV) – Technical + moderate depth
+4. Brain Computer Interface (BCI) – Theory + ML overlap
+5. Wireless Networks – Pure theory
+6. ARP (Quant + Reasoning) – Light but scoring
 
 Additional Focus/Guidance:
 ${syllabus}
@@ -23,7 +30,15 @@ ${examDates}
 
 Return ONLY valid JSON matching this schema:
 {
-  "planTitle": "Master B.Tech Placements Schedule",
+  "planTitle": "Master B.Tech Placements & Exam Schedule",
+  "subjectSyllabusCompletion": [
+    { "subject": "Pattern Recognition (PR)", "completionPercentage": 0, "status": "Not Started" },
+    { "subject": "Deep Learning (DL)", "completionPercentage": 0, "status": "Not Started" },
+    { "subject": "Computer Vision (CV)", "completionPercentage": 0, "status": "Not Started" },
+    { "subject": "Brain Computer Interface (BCI)", "completionPercentage": 0, "status": "Not Started" },
+    { "subject": "Wireless Networks", "completionPercentage": 0, "status": "Not Started" },
+    { "subject": "ARP", "completionPercentage": 0, "status": "Not Started" }
+  ],
   "dailyPlans": [
     {
       "date": "DD-MM-YYYY",
@@ -31,7 +46,14 @@ Return ONLY valid JSON matching this schema:
       "placementNotes": "Primary placement objective",
       "adaptationTip": "How to recover if missed",
       "blocks": [
-        { "time": "Evening 7PM-9PM", "activityType": "DSA / Academic", "topic": "string", "resources": "string", "duration": 120 }
+        { 
+          "time": "Evening 7PM-9PM", 
+          "activityType": "Study", 
+          "topic": "string (Subject Name)", 
+          "resources": "string",
+          "duration": 120,
+          "toDoList": ["Task 1", "Task 2", "Task 3"]
+        }
       ]
     }
   ],
@@ -42,7 +64,8 @@ Return ONLY valid JSON matching this schema:
 RULES:
 1. Return ONLY valid JSON block.
 2. Do NOT wrap output in markdown \`\`\`json.
-3. Balance placement preparation vs academic workloads realistically.
+3. Balance placement preparation vs academic workloads realistically. Ensure the 6 target subjects are covered per the specific priority order and depth requested.
+4. Fill subjectSyllabusCompletion with an ESTIMATED current completion rate based on what the student should have done by today, or generally set to 0. It is a starting point tracker.
 `,
 
   ADAPTIVE_REPLAN: (completedTasks, pendingTasks, daysRemaining, weakAreas) => `
