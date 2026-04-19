@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import pdfParse from 'pdf-parse';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
   try {
@@ -15,7 +17,21 @@ export async function POST(request) {
     const buffer = Buffer.from(bytes);
 
     // Use pdf-parse to extract text
-    const data = await pdfParse(buffer);
+    let pdfParse;
+    try {
+      pdfParse = (await import('pdf-parse')).default;
+    } catch (e) {
+      console.error('Failed to import pdf-parse:', e);
+      return NextResponse.json({ error: 'System error: PDF parser missing. Try pasting notes manually.' }, { status: 500 });
+    }
+    
+    let data;
+    try {
+      data = await pdfParse(buffer);
+    } catch (e) {
+      console.error('Failed to parse buffer:', e);
+      return NextResponse.json({ error: 'Failed to read this PDF. It might be corrupted or protected.' }, { status: 500 });
+    }
 
     return NextResponse.json({
       text: data.text,
