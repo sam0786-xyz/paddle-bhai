@@ -233,7 +233,7 @@ export default function StudyMode() {
              </div>
 
              {/* Tabs */}
-             <div className="flex gap-2 bg-tertiary p-1 rounded-full w-fit mx-auto mb-4">
+             <div className="flex gap-2 bg-tertiary p-1 rounded-full w-fit mx-auto mb-8">
                <button 
                  className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all ${activeTab === 'planner' ? 'bg-primary text-black' : 'text-muted'}`}
                  onClick={() => setActiveTab('planner')}
@@ -250,7 +250,7 @@ export default function StudyMode() {
 
               {activeTab === 'planner' && (
                 <div className="flex-col gap-2">
-                  <button className="btn btn-primary w-full shadow-glow" onClick={handleGenerate} disabled={loading || (!syllabus && projectContexts.length === 0)}>
+                  <button className="btn btn-primary w-full shadow-glow py-4 mt-2" onClick={handleGenerate} disabled={loading || (!syllabus && projectContexts.length === 0)}>
                     {loading ? <Loader2 size={16} className="animate-spin"/> : <Sparkles size={16}/>} 
                     {loading ? 'AI is Thinking...' : 'Generate Master Plan'}
                   </button>
@@ -517,6 +517,7 @@ export default function StudyMode() {
         .text-accent-xp { color: var(--accent-xp); }
         
         .shadow-glow { box-shadow: 0 0 20px rgba(6,182,212,0.15); }
+        .shadow-glow:hover { box-shadow: 0 0 30px rgba(6,182,212,0.25); }
         .card { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-lg); }
         
         /* ---- Checklist Progress ---- */

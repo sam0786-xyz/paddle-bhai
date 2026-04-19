@@ -137,6 +137,15 @@ export function TaskProvider({ children }) {
     }));
   }, []);
 
+  const clearAllTasks = useCallback(() => {
+    if (window.confirm('Are you sure you want to clear all tasks?')) {
+      setState(prev => ({
+        ...prev,
+        tasks: []
+      }));
+    }
+  }, []);
+
   const toggleTask = useCallback((id) => {
     setState(prev => {
       const task = prev.tasks.find(t => t.id === id);
@@ -288,7 +297,7 @@ export function TaskProvider({ children }) {
   const value = {
     ...state,
     loaded,
-    addTask, updateTask, deleteTask, toggleTask,
+    addTask, updateTask, deleteTask, clearAllTasks, toggleTask,
     addExam, updateExam, deleteExam,
     addStudySession, recordActivity,
     addDSAProblem, updateDSAProblem,

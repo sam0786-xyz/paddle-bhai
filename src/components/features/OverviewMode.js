@@ -7,7 +7,7 @@ import { useTasks } from '@/context/TaskContext';
 import { formatTime } from '@/lib/utils';
 
 export default function OverviewMode() {
-  const { todaysTasks, addTask, toggleTask, activityDates, exams, addExam, updateExam, deleteExam, addStudySession, recordActivity, xp, level, studySessions, dsaProblems, tasks } = useTasks();
+  const { todaysTasks, addTask, toggleTask, deleteTask, clearAllTasks, activityDates, exams, addExam, updateExam, deleteExam, addStudySession, recordActivity, xp, level, studySessions, dsaProblems, tasks } = useTasks();
   
   // States
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -452,8 +452,15 @@ export default function OverviewMode() {
               <h3 className="font-medium text-lg">Daily Quests</h3>
               <p className="text-secondary text-xs mt-1">Complete tasks for +20 XP</p>
             </div>
-            <div className="flex items-center gap-1 bg-orange-500/10 text-orange-400 px-3 py-1 rounded-full text-xs font-bold font-mono">
-              <Flame size={14} /> {activityDates.length} D
+            <div className="flex items-center gap-3">
+               {todaysTasks.length > 0 && (
+                 <button className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors uppercase font-bold tracking-tighter" onClick={clearAllTasks}>
+                   Clear All
+                 </button>
+               )}
+               <div className="flex items-center gap-1 bg-orange-500/10 text-orange-400 px-3 py-1 rounded-full text-xs font-bold font-mono">
+                 <Flame size={14} /> {activityDates.length} D
+               </div>
             </div>
           </header>
 
@@ -479,7 +486,12 @@ export default function OverviewMode() {
                     </div>
                   </label>
                   <span className="flex-1 text-sm font-medium">{task.title}</span>
-                  <span className="text-[10px] font-mono font-bold text-green-400">+20 XP</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-mono font-bold text-green-400">+20 XP</span>
+                    <button className="task-delete-btn" onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}>
+                      <Trash2 size={12}/>
+                    </button>
+                  </div>
                 </motion.div>
               ))
             )}
@@ -680,6 +692,17 @@ export default function OverviewMode() {
           background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.2);
           color: #06B6D4;
         }
+
+        .task-delete-btn {
+          opacity: 0;
+          color: var(--text-muted);
+          transition: all 0.2s;
+          cursor: pointer;
+          background: transparent;
+          border: none;
+        }
+        .hover-active:hover .task-delete-btn { opacity: 0.5; }
+        .task-delete-btn:hover { color: #EF4444 !important; opacity: 1 !important; transform: scale(1.1); }
       `}</style>
     </div>
   );
