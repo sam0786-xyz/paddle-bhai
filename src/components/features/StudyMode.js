@@ -127,22 +127,34 @@ export default function StudyMode() {
 
   const toggleCheckItem = (key) => {
     setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
+    addXP(5); // Reward 5 XP for each sub-task
   };
 
-  // Count completed checklist items
-  const totalBlocks = generatedPlan?.dailyPlans?.reduce((sum, day) => sum + (day.blocks?.length || 0), 0) || 0;
-  const completedBlocks = Object.values(checklist).filter(Boolean).length;
-  const checklistPercent = totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0;
+  // Count completed checklist items (Nested version)
+  const allGeneratedTasks = generatedPlan?.dailyPlans?.flatMap((day, dIdx) => 
+    day.blocks?.flatMap((block, bIdx) => 
+      block.toDoList?.map((task, tIdx) => ({
+        key: `${dIdx}-${bIdx}-${tIdx}`,
+        ...task
+      })) || []
+    ) || []
+  ) || [];
+
+  const totalTasks = allGeneratedTasks.length;
+  const completedTasksCount = allGeneratedTasks.filter(t => checklist[t.key]).length;
+  const checklistPercent = totalTasks > 0 ? Math.round((completedTasksCount / totalTasks) * 100) : 0;
 
   const transferTasks = () => {
     if (!generatedPlan?.dailyPlans) return;
-    generatedPlan.dailyPlans.forEach(day => {
-      day.blocks?.forEach(b => {
-        addTask({ 
-           title: b.topic || b.activityType, 
-           domain: b.activityType?.toLowerCase() || 'general',
-           description: `${day.date} [${b.time}]: ${b.resources || ''}`,
-           duration: b.duration || 60
+    generatedPlan.dailyPlans.forEach((day, dIdx) => {
+      day.blocks?.forEach((b, bIdx) => {
+        b.toDoList?.forEach((task, tIdx) => {
+          addTask({ 
+             title: task.taskName || b.topic, 
+             domain: b.activityType?.toLowerCase() || 'general',
+             description: `${day.date} [${b.time}]: ${task.what} | How: ${task.how} | Source: ${task.where}`,
+             duration: Math.ceil(b.duration / (b.toDoList.length || 1)) || 30
+          });
         });
       });
     });
@@ -313,62 +325,78 @@ export default function StudyMode() {
                 <div className="flex-col gap-6 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
                   
                   {/* Daily Plans */}
-                  {generatedPlan.dailyPlans?.map((day, i) => (
-                    <div key={i} className="bg-tertiary p-4 rounded-xl border border-primary/10 hover-active">
-                      <div className="flex justify-between items-center mb-3">
-                         <h4 className="font-bold text-md text-primary">{day.date}</h4>
+                  {generatedPlan.dailyPlans?.map((day, dIdx) => (
+                    <div key={dIdx} className="bg-tertiary p-5 rounded-2xl border border-primary/10 hover-active relative overflow-hidden mb-4">
+                      <div className="flex justify-between items-center mb-4 border-b border-primary/5 pb-2">
+                         <h4 className="font-bold text-lg text-primary">{day.date}</h4>
+                         <span className="text-[10px] uppercase tracking-widest text-muted">{day.placementNotes}</span>
                       </div>
                       
-                      {/* Guidance Tags */}
-                      <div className="flex flex-col gap-2 mb-4 guidance-box p-3 rounded-lg border border-primary/5">
-                         <div className="text-xs">
-                           <span className="font-bold text-accent-purple">Academic Notes:</span> <span className="text-muted">{day.academicNotes}</span>
+                      {/* Context Memo */}
+                      <div className="grid grid-cols-2 gap-2 mb-6">
+                         <div className="p-2 bg-black/20 rounded-lg border border-primary/5">
+                            <span className="text-[9px] uppercase text-accent-purple font-bold block mb-1">Academic</span>
+                            <p className="text-[11px] text-muted line-clamp-2">{day.academicNotes}</p>
                          </div>
-                         <div className="text-xs">
-                           <span className="font-bold text-accent-cyan">Placement Goal:</span> <span className="text-muted">{day.placementNotes}</span>
+                         <div className="p-2 bg-black/20 rounded-lg border border-primary/5">
+                            <span className="text-[9px] uppercase text-accent-cyan font-bold block mb-1">Strategy</span>
+                            <p className="text-[11px] text-muted line-clamp-2">{day.adaptationTip}</p>
                          </div>
-                         {day.adaptationTip && (
-                           <div className="adaptation-tip">
-                             Tip: {day.adaptationTip}
-                           </div>
-                         )}
                       </div>
 
-                      {/* Time Blocks as Checklist */}
-                      <div className="flex flex-col gap-2">
-                        {day.blocks?.map((b, bi) => {
-                          const key = `${i}-${bi}`;
-                          const isChecked = checklist[key];
-                          return (
-                            <div key={bi} className={`flex gap-3 items-center block-row p-2 rounded-md ${isChecked ? 'block-done' : ''}`}>
-                              <button 
-                                className={`block-check ${isChecked ? 'checked' : ''}`}
-                                onClick={() => toggleCheckItem(key)}
-                              >
-                                {isChecked && <CheckCircle2 size={14}/>}
-                              </button>
-                              <div className="text-xs mono-text text-muted w-24 shrink-0">{b.time}</div>
-                              <div className="w-1 h-8 rounded-full shrink-0" style={{ background: isChecked ? 'var(--accent-xp)' : 'var(--border-primary)' }}></div>
-                              <div className="flex-col flex-1">
-                                <div className={`text-sm font-medium ${isChecked ? 'line-through text-muted' : ''}`}>{b.topic}</div>
-                                <div className="text-xs text-muted flex justify-between">
-                                  <span>{b.activityType}</span>
-                                  {b.duration && <span className="mono-text text-accent-orange">{b.duration}m</span>}
-                                </div>
-                                {b.resources && (
-                                  <div className="text-xs mt-1 resource-tag">{b.resources}</div>
-                                )}
-                                {b.toDoList && b.toDoList.length > 0 && (
-                                  <ul className="mt-2 pl-4 list-disc text-xs text-muted flex-col gap-1">
-                                    {b.toDoList.map((task, tIdx) => (
-                                      <li key={tIdx} className={isChecked ? 'line-through opacity-50' : ''}>{task}</li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
+                      {/* Subject Blocks */}
+                      <div className="flex flex-col gap-6">
+                        {day.blocks?.map((b, bIdx) => (
+                          <div key={bIdx} className="flex-col gap-3">
+                            <div className="flex items-center gap-2 mb-1">
+                               <div className="w-1 h-4 bg-accent-orange rounded-full"></div>
+                               <h5 className="font-bold text-sm text-accent-orange uppercase tracking-tight">{b.topic}</h5>
+                               <span className="text-[10px] mono-text text-muted bg-white/5 px-2 py-0.5 rounded-full">{b.time}</span>
                             </div>
-                          );
-                        })}
+
+                            {/* Detailed Tasks */}
+                            <div className="flex flex-col gap-3 ml-3">
+                              {b.toDoList?.map((task, tIdx) => {
+                                const key = `${dIdx}-${bIdx}-${tIdx}`;
+                                const isChecked = checklist[key];
+                                return (
+                                  <div key={tIdx} className={`task-card p-3 rounded-xl border border-primary/5 transition-all ${isChecked ? 'task-checked' : 'bg-primary/5'}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div className="flex-col">
+                                        <div className={`text-sm font-bold ${isChecked ? 'line-through text-muted' : 'text-primary'}`}>{task.taskName}</div>
+                                        <div className="text-[11px] text-accent-cyan font-medium mt-0.5">Focus: {task.what}</div>
+                                      </div>
+                                      <button 
+                                        className={`task-check-btn ${isChecked ? 'task-check-done' : ''}`}
+                                        onClick={() => toggleCheckItem(key)}
+                                      >
+                                        <CheckCircle2 size={16}/>
+                                      </button>
+                                    </div>
+                                    
+                                    {!isChecked && (
+                                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-col gap-2 mt-2 pt-2 border-t border-primary/5">
+                                        <div className="text-[11px] text-muted">
+                                          <span className="font-bold text-accent-purple">How:</span> {task.how}
+                                        </div>
+                                        {task.where && (
+                                          <div className="text-[11px] text-muted flex items-center gap-1 flex-wrap">
+                                            <span className="font-bold text-accent-xp">Source:</span> 
+                                            {task.where.includes('http') ? (
+                                              <a href={task.where} target="_blank" rel="noopener noreferrer" className="text-accent-cyan hover:underline">{task.where}</a>
+                                            ) : (
+                                              <span>{task.where}</span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </motion.div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
@@ -467,8 +495,6 @@ export default function StudyMode() {
             )}
           </AnimatePresence>
         </div>
-      </div>
-
       <style jsx>{`
         .layout-grid {
           display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-lg);
@@ -489,64 +515,34 @@ export default function StudyMode() {
         .text-accent-purple { color: var(--accent-purple); }
         .text-accent-cyan { color: var(--accent-cyan); }
         .text-accent-xp { color: var(--accent-xp); }
-        .border-accent-cyan\\/30 { border-color: rgba(6,182,212,0.3); }
-        .border-accent-cyan\\/20 { border-color: rgba(6,182,212,0.2); }
-        .hover\\:text-red-400:hover { color: var(--accent-pink); }
         
-        .shadow-glow { box-shadow: 0 0 20px rgba(255,255,255,0.1); }
-        .shadow-glow:hover { box-shadow: 0 0 30px rgba(255,255,255,0.2); }
-        
+        .shadow-glow { box-shadow: 0 0 20px rgba(6,182,212,0.15); }
         .card { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-lg); }
-        .mb-6 { margin-bottom: 24px; } .mb-4 { margin-bottom: 16px; } .mb-3 { margin-bottom: 12px; } .mb-2 { margin-bottom: 8px; } .mb-1 { margin-bottom: 4px; }
-        .mt-6 { margin-top: 24px; } .mt-4 { margin-top: 16px; } .mt-2 { margin-top: 8px; } .mt-1 { margin-top: 4px; }
-        .p-3 { padding: 12px; } .p-5 { padding: 20px; } .p-6 { padding: 24px; }
-        .px-3 { padding-left: 12px; padding-right: 12px; } .px-4 { padding-left: 16px; padding-right: 16px; }
-        .py-1 { padding-top: 4px; padding-bottom: 4px; } .py-1\\.5 { padding-top: 6px; padding-bottom: 6px; }
-        .py-6 { padding-top: 24px; padding-bottom: 24px; }
-        .gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
-        .text-xs { font-size: 0.75rem; } .text-sm { font-size: 0.875rem; } .text-md { font-size: 1rem; } .text-lg { font-size: 1.125rem; } .text-xl { font-size: 1.25rem; }
-        .font-bold { font-weight: 700; } .font-medium { font-weight: 500; } .font-semibold { font-weight: 600; } .mono-text, .font-mono { font-family: var(--font-mono); }
-        .flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; } .text-center { text-align: center; }
-        .w-full { width: 100%; } .w-fit { width: fit-content; } .w-24 { width: 6rem; }
-        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .max-w-\\[200px\\] { max-width: 200px; }
-        .rounded-md { border-radius: var(--radius-md); } .rounded-lg { border-radius: var(--radius-lg); } .rounded-xl { border-radius: 12px; } .rounded-full { border-radius: 9999px; }
-        .border { border-width: 1px; } .border-0 { border-width: 0; }
-        .border-dashed { border-style: dashed; } .border-primary\\/20 { border-color: rgba(255,255,255,0.2); } .border-primary\\/10 { border-color: rgba(255,255,255,0.1); } .border-primary\\/5 { border-color: rgba(255,255,255,0.05); }
-        .hidden { display: none; }
-        .transition-colors { transition: color 150ms ease; } .transition-all { transition: all 150ms ease; }
-        .max-h-\\[600px\\] { max-height: 600px; } .overflow-y-auto { overflow-y: auto; } .pr-2 { padding-right: 8px; }
-        .shrink-0 { flex-shrink: 0; } .flex-1 { flex: 1; } .mx-auto { margin-left: auto; margin-right: auto; }
-        .line-through { text-decoration: line-through; }
         
-        .input { background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-primary); outline: none; border-radius: var(--radius-md); padding: 8px 12px; transition: border-color 150ms; width: 100%; }
-        .input:focus { border-color: var(--primary); }
+        /* ---- Checklist Progress ---- */
+        .checklist-bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden; }
+        .checklist-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-xp), var(--accent-cyan)); border-radius: 999px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* ---- Task Cards ---- */
+        .task-card { position: relative; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.05); }
+        .task-card:hover:not(.task-checked) { border-color: rgba(6,182,212,0.3); transform: translateX(4px); background: rgba(255,255,255,0.03); }
+        .task-checked { opacity: 0.5; border-color: var(--accent-xp); background: rgba(16,185,129,0.02) !important; }
         
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .animate-spin { animation: spin 1s linear infinite; }
+        .task-check-btn {
+          width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1);
+          background: transparent; color: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s; cursor: pointer; flex-shrink: 0;
+        }
+        .task-check-btn:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+        .task-check-done { background: var(--accent-xp); border-color: var(--accent-xp); color: #000; box-shadow: 0 0 15px rgba(16,185,129,0.3); }
+        
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 4px; }
 
-        /* ---- Checklist Progress ---- */
-        .checklist-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden; }
-        .checklist-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-xp), var(--accent-cyan)); border-radius: 999px; transition: width 0.4s ease; }
-
-        /* ---- Block Checklist ---- */
-        .block-row { background: rgba(255,255,255,0.02); transition: all 0.15s; }
-        .block-row:hover { background: rgba(255,255,255,0.04); }
-        .block-done { opacity: 0.5; }
-        .block-check {
-          width: 20px; height: 20px; border-radius: 4px; border: 2px solid rgba(255,255,255,0.2);
-          background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
-          transition: all 0.15s; flex-shrink: 0; color: var(--accent-xp);
-        }
-        .block-check.checked { background: var(--accent-xp); border-color: var(--accent-xp); color: #000; }
-        .block-check:hover:not(.checked) { border-color: var(--accent-xp); }
-
-        .guidance-box { background: rgba(255,255,255,0.02); }
-        .adaptation-tip { font-size: 0.65rem; font-style: italic; color: var(--accent-orange); background: rgba(249,115,22,0.08); padding: 4px 8px; border-radius: 4px; display: inline-block; width: fit-content; margin-top: 4px; }
-        .resource-tag { color: var(--accent-cyan); background: rgba(6,182,212,0.08); padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content; }
-        .resource-link:hover { border-color: var(--accent-cyan) !important; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .hover-active:hover { border-color: var(--accent-cyan); }
 
         /* ---- MCQ ---- */
         .mcq-option {
@@ -559,13 +555,8 @@ export default function StudyMode() {
         .mcq-selected { border-color: var(--accent-cyan) !important; background: rgba(6,182,212,0.1) !important; }
         .mcq-correct { border-color: var(--accent-xp) !important; background: rgba(16,185,129,0.12) !important; }
         .mcq-wrong { border-color: #EF4444 !important; background: rgba(239,68,68,0.1) !important; }
-        .mcq-letter {
-          width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.06);
-          display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;
-        }
-        .mcq-explain-correct { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); }
-        .mcq-explain-wrong { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15); }
       `}</style>
+      </div>
     </div>
   );
 }

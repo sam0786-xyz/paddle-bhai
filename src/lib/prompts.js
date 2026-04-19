@@ -50,9 +50,16 @@ Return ONLY valid JSON matching this schema:
           "time": "Evening 7PM-9PM", 
           "activityType": "Study", 
           "topic": "string (Subject Name)", 
-          "resources": "string",
+          "resources": "Summary of overall session resources",
           "duration": 120,
-          "toDoList": ["Task 1", "Task 2", "Task 3"]
+          "toDoList": [
+            {
+              "taskName": "Specific sub-topic or goal",
+              "what": "What exactly to prepare/read/write",
+              "how": "Step-by-step strategy or practice method",
+              "where": "Name of the resource and a direct YouTube or Documentation Link if available"
+            }
+          ]
         }
       ]
     }

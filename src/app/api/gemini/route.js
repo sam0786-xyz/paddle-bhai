@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic';
 
 // Model fallback chain: try each in order
 const MODEL_CHAIN = [
-  'gemini-flash-latest',
   'gemini-2.5-pro'
 ];
 
