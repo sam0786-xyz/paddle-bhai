@@ -2,25 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Plus, Flame, Play, Pause, RotateCcw, Calendar, TrendingUp, Zap, Clock, Brain, X, MapPin, ChevronDown, Trash2 } from 'lucide-react';
+import { Check, Plus, Flame, Play, Pause, RotateCcw, Calendar, TrendingUp, Zap, Clock, Brain, X, MapPin, ChevronDown, Trash2, Pencil } from 'lucide-react';
 import { useTasks } from '@/context/TaskContext';
 import { formatTime } from '@/lib/utils';
 
 export default function OverviewMode() {
-  const { todaysTasks, addTask, toggleTask, activityDates, exams, addExam, deleteExam, addStudySession, recordActivity, xp, level, studySessions, dsaProblems, tasks } = useTasks();
+  const { todaysTasks, addTask, toggleTask, activityDates, exams, addExam, updateExam, deleteExam, addStudySession, recordActivity, xp, level, studySessions, dsaProblems, tasks } = useTasks();
   
   // States
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [showExamForm, setShowExamForm] = useState(false);
-  const [examForm, setExamForm] = useState({
-    type: 'exam',
-    subject: '',
-    date: new Date().toISOString().split('T')[0],
-    timeFrom: '13:30',
-    timeTo: '16:30',
-    room: '',
-    notes: '',
-  });
+  const [editingExamId, setEditingExamId] = useState(null);
+  const defaultExamForm = { type: 'exam', subject: '', date: new Date().toISOString().split('T')[0], timeFrom: '13:30', timeTo: '16:30', room: '', notes: '' };
+  const [examForm, setExamForm] = useState(defaultExamForm);
   
   // Pomodoro States
   const [workTime] = useState(50);
@@ -49,7 +43,7 @@ export default function OverviewMode() {
   const handleAddExam = (e) => {
     e.preventDefault();
     if (!examForm.subject.trim() || !examForm.date) return;
-    addExam({
+    const payload = {
       subject: examForm.subject.trim(),
       date: examForm.date,
       time: `${examForm.timeFrom} - ${examForm.timeTo}`,
@@ -57,9 +51,36 @@ export default function OverviewMode() {
       notes: examForm.notes.trim() || null,
       type: examForm.type,
       tags: [examForm.type === 'exam' ? 'ETE' : examForm.type === 'practical' ? 'Practical' : 'Important'],
-    });
-    setExamForm({ type: 'exam', subject: '', date: new Date().toISOString().split('T')[0], timeFrom: '13:30', timeTo: '16:30', room: '', notes: '' });
+    };
+    if (editingExamId) {
+      updateExam(editingExamId, payload);
+      setEditingExamId(null);
+    } else {
+      addExam(payload);
+    }
+    setExamForm(defaultExamForm);
     setShowExamForm(false);
+  };
+
+  const startEditExam = (exam) => {
+    const timeParts = (exam.time || '13:30 - 16:30').split('-').map(s => s.trim());
+    setExamForm({
+      type: exam.type || 'exam',
+      subject: exam.subject || '',
+      date: exam.date ? exam.date.split('T')[0] : todayStr,
+      timeFrom: timeParts[0] || '13:30',
+      timeTo: timeParts[1] || '16:30',
+      room: exam.room || '',
+      notes: exam.notes || '',
+    });
+    setEditingExamId(exam.id);
+    setShowExamForm(true);
+  };
+
+  const cancelExamForm = () => {
+    setShowExamForm(false);
+    setEditingExamId(null);
+    setExamForm(defaultExamForm);
   };
 
   // Timer Logic
@@ -184,7 +205,7 @@ export default function OverviewMode() {
               <h3 className="font-medium text-lg flex items-center gap-2"><Calendar size={18}/> Exam Timeline</h3>
               <button
                 className="exam-add-toggle"
-                onClick={() => setShowExamForm(!showExamForm)}
+                onClick={() => showExamForm ? cancelExamForm() : setShowExamForm(true)}
               >
                 {showExamForm ? <X size={16}/> : <Plus size={16}/>}
                 {showExamForm ? 'Cancel' : 'Add Event'}
@@ -288,7 +309,8 @@ export default function OverviewMode() {
 
                     {/* Submit */}
                     <button type="submit" className="exam-submit-btn">
-                      <Plus size={16}/> Add {examForm.type === 'exam' ? 'Exam' : examForm.type === 'practical' ? 'Practical' : 'Event'}
+                      {editingExamId ? <Pencil size={16}/> : <Plus size={16}/>}
+                      {editingExamId ? 'Update' : 'Add'} {examForm.type === 'exam' ? 'Exam' : examForm.type === 'practical' ? 'Practical' : 'Event'}
                     </button>
                   </form>
                 </motion.div>
@@ -322,9 +344,14 @@ export default function OverviewMode() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="nearest-label">{typeEmoji(nearest.type)} NEXT {typeLabel(nearest.type)}</div>
                       {nearest.id && (
-                        <button onClick={() => deleteExam(nearest.id)} className="exam-delete-btn" title="Remove">
-                          <Trash2 size={14}/>
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button onClick={() => startEditExam(nearest)} className="exam-edit-btn" title="Edit">
+                            <Pencil size={14}/>
+                          </button>
+                          <button onClick={() => deleteExam(nearest.id)} className="exam-delete-btn" title="Remove">
+                            <Trash2 size={14}/>
+                          </button>
+                        </div>
                       )}
                     </div>
                     <div className="flex justify-between items-start mb-2">
@@ -388,9 +415,14 @@ export default function OverviewMode() {
                                {e.daysLeft}d left
                              </span>
                              {e.id && (
-                               <button onClick={() => deleteExam(e.id)} className="exam-delete-btn" title="Remove">
-                                 <Trash2 size={12}/>
-                               </button>
+                               <div style={{ display: 'flex', gap: '4px' }}>
+                                 <button onClick={() => startEditExam(e)} className="exam-edit-btn" title="Edit">
+                                   <Pencil size={12}/>
+                                 </button>
+                                 <button onClick={() => deleteExam(e.id)} className="exam-delete-btn" title="Remove">
+                                   <Trash2 size={12}/>
+                                 </button>
+                               </div>
                              )}
                            </div>
                          </div>
@@ -636,6 +668,17 @@ export default function OverviewMode() {
         .exam-delete-btn:hover {
           background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2);
           color: #EF4444;
+        }
+        .exam-edit-btn {
+          display: flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: 6px;
+          background: transparent; border: 1px solid transparent;
+          color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+          flex-shrink: 0;
+        }
+        .exam-edit-btn:hover {
+          background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.2);
+          color: #06B6D4;
         }
       `}</style>
     </div>
