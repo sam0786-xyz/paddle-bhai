@@ -7,14 +7,21 @@ import { supabase } from '@/lib/supabase';
 const TaskContext = createContext();
 
 const MOCK_EXAMS = [
-  { id: '1', subject: 'Pattern Recognition ETE', date: '2026-04-29T13:30Z', time: '13:30 - 16:30', tags: ['6th Semester', 'Both'] },
-  { id: '2', subject: 'Deep Learning ETE', date: '2026-05-02T13:30Z', time: '13:30 - 16:30', tags: ['6th Semester', 'Both'] },
-  { id: '3', subject: 'BCI ETE', date: '2026-05-05T13:30Z', time: '13:30 - 16:30', tags: ['6th Semester', 'Both'] },
-  { id: '4', subject: 'Wireless Networks ETE', date: '2026-05-07T13:30Z', time: '13:30 - 16:30', tags: ['6th Semester', 'Both'], notes: 'Only for Wireless Networking students' },
-  { id: '5', subject: 'NLP ETE', date: '2026-05-07T13:30Z', time: '13:30 - 16:30', tags: ['6th Semester', 'Both'], notes: 'Only for NLP students' },
-  { id: '6', subject: 'CV ETE', date: '2026-05-11T13:30Z', time: '13:30 - 16:30', tags: ['6th Semester', 'Both'] },
-  { id: '7', subject: 'Recommender Systems ETE', date: '2026-05-15T13:30Z', time: '13:30 - 16:30', tags: ['6th Semester', 'Both'], notes: 'Only for Recommender students' },
-  { id: '8', subject: 'ARP ETE', date: '2026-05-19T13:30Z', time: '13:30 - 15:30', tags: ['6th Semester', 'Both'], notes: 'Only Quant and Reasoning part will come' },
+  // End Term Exams
+  { id: '1', subject: 'Pattern Recognition ETE', date: '2026-04-29', time: '13:30 - 16:30', type: 'exam', tags: ['ETE'] },
+  { id: '2', subject: 'Deep Learning ETE', date: '2026-05-02', time: '13:30 - 16:30', type: 'exam', tags: ['ETE'] },
+  { id: '3', subject: 'BCI ETE', date: '2026-05-05', time: '13:30 - 16:30', type: 'exam', tags: ['ETE'] },
+  { id: '4', subject: 'Wireless Networks ETE', date: '2026-05-07', time: '13:30 - 16:30', type: 'exam', tags: ['ETE'], notes: 'Only for Wireless Networking students' },
+  { id: '5', subject: 'NLP ETE', date: '2026-05-07', time: '13:30 - 16:30', type: 'exam', tags: ['ETE'], notes: 'Only for NLP students' },
+  { id: '6', subject: 'CV ETE', date: '2026-05-11', time: '13:30 - 16:30', type: 'exam', tags: ['ETE'] },
+  { id: '7', subject: 'Recommender Systems ETE', date: '2026-05-15', time: '13:30 - 16:30', type: 'exam', tags: ['ETE'], notes: 'Only for Recommender students' },
+  { id: '8', subject: 'ARP ETE', date: '2026-05-19', time: '13:30 - 15:30', type: 'exam', tags: ['ETE'], notes: 'Only Quant and Reasoning part will come' },
+  // Practicals
+  { id: 'p1', subject: 'Deep Learning Lab Practical', date: '2026-04-21', time: '09:00 - 12:00', type: 'practical', tags: ['Practical'] },
+  { id: 'p2', subject: 'Pattern Recognition Lab Practical', date: '2026-04-22', time: '09:00 - 12:00', type: 'practical', tags: ['Practical'] },
+  { id: 'p3', subject: 'BCI Lab Practical', date: '2026-04-23', time: '09:00 - 12:00', type: 'practical', tags: ['Practical'] },
+  { id: 'p4', subject: 'NLP Lab Practical', date: '2026-04-24', time: '09:00 - 12:00', type: 'practical', tags: ['Practical'], notes: 'Only for NLP students' },
+  { id: 'p5', subject: 'CV Lab Practical', date: '2026-04-25', time: '09:00 - 12:00', type: 'practical', tags: ['Practical'] },
 ];
 
 const INITIAL_STATE = {
@@ -35,33 +42,52 @@ export function TaskProvider({ children }) {
   const [loaded, setLoaded] = useState(false);
   const skipNextSync = useRef(true);
 
-  // Load from Supabase on mount
+  // Load from Supabase (with localStorage fallback)
   useEffect(() => {
     async function loadData() {
-      const { data, error } = await supabase.from('app_state').select('state_data').eq('id', '00000000-0000-0000-0000-000000000000').single();
-      
       let finalState = INITIAL_STATE;
-      if (data && data.state_data) {
-        finalState = data.state_data;
-        // Merge exams if they were wiped
-        if (!finalState.exams || finalState.exams.length === 0) {
-          finalState.exams = MOCK_EXAMS;
+      
+      // Try localStorage first (instant)
+      try {
+        const local = localStorage.getItem('padhleBhai_state');
+        if (local) finalState = JSON.parse(local);
+      } catch {}
+
+      // Then try Supabase (override if fresher)
+      try {
+        const { data } = await supabase.from('app_state').select('state_data').eq('id', '00000000-0000-0000-0000-000000000000').single();
+        
+        if (data && data.state_data) {
+          finalState = data.state_data;
+        } else {
+          // First time — seed Supabase
+          await supabase.from('app_state').upsert({ id: '00000000-0000-0000-0000-000000000000', state_data: finalState });
         }
-      } else {
-        // First time initialization
-        await supabase.from('app_state').insert({ id: '00000000-0000-0000-0000-000000000000', state_data: INITIAL_STATE });
+      } catch (err) {
+        console.warn('Supabase load failed, using localStorage:', err.message);
+      }
+
+      // Ensure exams are never empty
+      if (!finalState.exams || finalState.exams.length === 0) {
+        finalState.exams = MOCK_EXAMS;
       }
       
       setState(finalState);
       setLoaded(true);
-      skipNextSync.current = true; // Prevent the immediate effect from overwriting
+      skipNextSync.current = true;
     }
     loadData();
   }, []);
 
-  // Persist to Supabase on change
+  // Persist to both Supabase and localStorage on change
   useEffect(() => {
     if (loaded && !skipNextSync.current) {
+      // Always save to localStorage (instant, reliable)
+      try {
+        localStorage.setItem('padhleBhai_state', JSON.stringify(state));
+      } catch {}
+      
+      // Also sync to Supabase
       supabase.from('app_state').upsert({ 
         id: '00000000-0000-0000-0000-000000000000', 
         state_data: state, 
