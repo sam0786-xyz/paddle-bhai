@@ -1,10 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 // Model fallback chain: try each in order
 const MODEL_CHAIN = [
-  'gemini-flash-latest',
-  'gemini-2.5-pro'
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro'
 ];
 
 export async function POST(request) {
@@ -63,13 +67,19 @@ export async function POST(request) {
     // Try to parse as JSON if expected
     if (type === 'json') {
       try {
-        // Find the first { or [ and the last } or ] to extract JSON robustly
-        const jsonMatch = text.match(/(\{|\[)[\s\S]*(\}|\])/);
+        // Robust pattern to extract JSON even if wrapped in markdown ```json ... ```
+        const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
         const jsonStr = jsonMatch ? jsonMatch[0] : text;
-        const parsed = JSON.parse(jsonStr);
+        const parsed = JSON.parse(jsonStr.replace(/```json|```/g, '').trim());
         return NextResponse.json({ data: parsed, raw: text });
-      } catch {
-        return NextResponse.json({ data: null, raw: text, parseError: true });
+      } catch (err) {
+        console.error('JSON Parse Error. Raw text:', text);
+        return NextResponse.json({ 
+          data: null, 
+          raw: text, 
+          parseError: true,
+          error: 'AI response was not in a valid JSON format. Raw output saved for review.' 
+        });
       }
     }
 

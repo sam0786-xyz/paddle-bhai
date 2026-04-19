@@ -21,6 +21,7 @@ export default function StudyMode() {
   const [mcqSubmitted, setMcqSubmitted] = useState(false);
   const [checklist, setChecklist] = useState({}); // { dayIndex-blockIndex: true/false }
   const [activeTab, setActiveTab] = useState('planner');
+  const [genStatus, setGenStatus] = useState(''); // Status message during generation
 
   // Build exam context string from state
   const examContextStr = exams
@@ -59,22 +60,54 @@ export default function StudyMode() {
   };
 
   const handleGenerate = async () => {
+    if (loading) return;
+    
     try {
-      const knowledgeContext = projectContexts.length > 0 
-        ? `Use this strictly as background context:\n${projectContexts.map(c => c.text).join('\n---\n')}\n\n`
+      setGenStatus('Analyzing Syllabus PDF...');
+      
+      // Limit context size to avoid token limit errors (max 10k chars recommended for focused context)
+      const MAX_CONTEXT_CHARS = 10000;
+      let totalChars = 0;
+      const filteredContext = projectContexts
+        .map(c => {
+          const charsLeft = MAX_CONTEXT_CHARS - totalChars;
+          if (charsLeft <= 0) return '';
+          const snippet = c.text.substring(0, charsLeft);
+          totalChars += snippet.length;
+          return snippet;
+        })
+        .filter(t => t.length > 0);
+
+      const knowledgeContext = filteredContext.length > 0 
+        ? `Use this syllabus context strictly (Priority subjects: PR, DL, CV, BCI, Wireless, ARP):\n${filteredContext.join('\n---\n')}\n\n`
         : '';
       
+      setGenStatus('Structuring Plan & Priorities...');
       const allExamDates = examDates ? examDates + '\n' + examContextStr : examContextStr;
       const rawPrompt = PROMPTS.GENERATE_STUDY_PLAN(syllabus, allExamDates, 'flexible', 'daily');
       const finalPrompt = knowledgeContext + rawPrompt;
 
+      setGenStatus('Generating Roadmap (may take 20s)...');
       const data = await generate(finalPrompt, true);
-      if (data) {
-        setGeneratedPlan(data);
-        setChecklist({}); // Reset checklist for new plan
-        addXP(50);
+      
+      if (!data || typeof data !== 'object') {
+        throw new Error('AI returned an invalid plan format. Please try again or check your API key.');
       }
-    } catch (err) { console.error(err); }
+
+      if (!data.dailyPlans || data.dailyPlans.length === 0) {
+        throw new Error('The AI failed to create specific daily blocks. Try simplifying your guidance notes.');
+      }
+
+      setGenStatus('Finalizing...');
+      setGeneratedPlan(data);
+      setChecklist({}); 
+      addXP(50);
+      setGenStatus('');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Generation failed. Please wait a minute and try again.');
+      setGenStatus('');
+    }
   };
 
   const generateMCQ = async () => {
@@ -203,11 +236,19 @@ export default function StudyMode() {
                </button>
              </div>
 
-             {activeTab === 'planner' && (
-               <button className="btn btn-primary w-full shadow-glow" onClick={handleGenerate} disabled={loading || (!syllabus && projectContexts.length === 0)}>
-                 {loading ? <Loader2 size={16} className="animate-spin"/> : <Sparkles size={16}/>} Generate Master Plan
-               </button>
-             )}
+              {activeTab === 'planner' && (
+                <div className="flex-col gap-2">
+                  <button className="btn btn-primary w-full shadow-glow" onClick={handleGenerate} disabled={loading || (!syllabus && projectContexts.length === 0)}>
+                    {loading ? <Loader2 size={16} className="animate-spin"/> : <Sparkles size={16}/>} 
+                    {loading ? 'AI is Thinking...' : 'Generate Master Plan'}
+                  </button>
+                  {genStatus && (
+                    <div className="text-[10px] text-center text-accent-cyan flex justify-center items-center gap-1 mt-1">
+                       <Loader2 size={10} className="animate-spin" /> {genStatus}
+                    </div>
+                  )}
+                </div>
+              )}
              {activeTab === 'mcq' && (
                <button className="btn btn-secondary w-full" onClick={generateMCQ} disabled={loading}>
                  {loading ? <Loader2 size={16} className="animate-spin"/> : <BrainCircuit size={16}/>} Generate 5-Question Quiz

@@ -24,8 +24,9 @@ export function useGemini() {
 
       const result = await res.json();
 
-      if (result.parseError) {
-        console.warn('JSON parse warning: AI response was not valid JSON');
+      if (result.parseError && expectJson) {
+        console.error('AI JSON parse failed. Raw:', result.raw);
+        throw new Error(result.error || 'The AI failed to format the plan correctly. Please try again with more specific guidance.');
       }
 
       return result.data || result.raw;
