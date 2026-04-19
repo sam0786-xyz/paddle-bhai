@@ -6,9 +6,8 @@ export const dynamic = 'force-dynamic';
 
 // Model fallback chain: try each in order
 const MODEL_CHAIN = [
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro'
+  'gemini-flash-latest',
+  'gemini-2.5-pro'
 ];
 
 export async function POST(request) {
@@ -74,11 +73,11 @@ export async function POST(request) {
         return NextResponse.json({ data: parsed, raw: text });
       } catch (err) {
         console.error('JSON Parse Error. Raw text:', text);
-        return NextResponse.json({ 
-          data: null, 
-          raw: text, 
+        return NextResponse.json({
+          data: null,
+          raw: text,
           parseError: true,
-          error: 'AI response was not in a valid JSON format. Raw output saved for review.' 
+          error: 'AI response was not in a valid JSON format. Raw output saved for review.'
         });
       }
     }
