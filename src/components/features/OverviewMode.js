@@ -2,17 +2,25 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Plus, Flame, Play, Pause, RotateCcw, Calendar, TrendingUp, Zap, Clock, Brain } from 'lucide-react';
+import { Check, Plus, Flame, Play, Pause, RotateCcw, Calendar, TrendingUp, Zap, Clock, Brain, X, MapPin, ChevronDown, Trash2 } from 'lucide-react';
 import { useTasks } from '@/context/TaskContext';
 import { formatTime } from '@/lib/utils';
 
 export default function OverviewMode() {
-  const { todaysTasks, addTask, toggleTask, activityDates, exams, addExam, addStudySession, recordActivity, xp, level, studySessions, dsaProblems, tasks } = useTasks();
+  const { todaysTasks, addTask, toggleTask, activityDates, exams, addExam, deleteExam, addStudySession, recordActivity, xp, level, studySessions, dsaProblems, tasks } = useTasks();
   
   // States
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newExamSubject, setNewExamSubject] = useState('');
-  const [newExamDate, setNewExamDate] = useState('');
+  const [showExamForm, setShowExamForm] = useState(false);
+  const [examForm, setExamForm] = useState({
+    type: 'exam',
+    subject: '',
+    date: new Date().toISOString().split('T')[0],
+    timeFrom: '13:30',
+    timeTo: '16:30',
+    room: '',
+    notes: '',
+  });
   
   // Pomodoro States
   const [workTime] = useState(50);
@@ -40,10 +48,18 @@ export default function OverviewMode() {
 
   const handleAddExam = (e) => {
     e.preventDefault();
-    if(!newExamSubject || !newExamDate) return;
-    addExam({ subject: newExamSubject, date: newExamDate });
-    setNewExamSubject('');
-    setNewExamDate('');
+    if (!examForm.subject.trim() || !examForm.date) return;
+    addExam({
+      subject: examForm.subject.trim(),
+      date: examForm.date,
+      time: `${examForm.timeFrom} - ${examForm.timeTo}`,
+      room: examForm.room.trim() || null,
+      notes: examForm.notes.trim() || null,
+      type: examForm.type,
+      tags: [examForm.type === 'exam' ? 'ETE' : examForm.type === 'practical' ? 'Practical' : 'Important'],
+    });
+    setExamForm({ type: 'exam', subject: '', date: new Date().toISOString().split('T')[0], timeFrom: '13:30', timeTo: '16:30', room: '', notes: '' });
+    setShowExamForm(false);
   };
 
   // Timer Logic
@@ -155,12 +171,120 @@ export default function OverviewMode() {
 
           {/* Exam Timeline */}
           <section className="card mt-6">
-            <h3 className="font-medium text-lg mb-4 flex items-center gap-2"><Calendar size={18}/> Exam Timeline</h3>
-            <form onSubmit={handleAddExam} className="flex gap-2 mb-4">
-              <input type="text" className="input flex-1 py-2 text-sm" placeholder="Subject" value={newExamSubject} onChange={e => setNewExamSubject(e.target.value)} />
-              <input type="date" className="input w-auto py-2 text-sm" value={newExamDate} onChange={e => setNewExamDate(e.target.value)} />
-              <button type="submit" className="btn btn-primary px-3"><Plus size={16}/></button>
-            </form>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 className="font-medium text-lg flex items-center gap-2"><Calendar size={18}/> Exam Timeline</h3>
+              <button
+                className="exam-add-toggle"
+                onClick={() => setShowExamForm(!showExamForm)}
+              >
+                {showExamForm ? <X size={16}/> : <Plus size={16}/>}
+                {showExamForm ? 'Cancel' : 'Add Event'}
+              </button>
+            </div>
+
+            {/* Rich Add Exam Form */}
+            <AnimatePresence>
+              {showExamForm && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <form onSubmit={handleAddExam} className="exam-form">
+                    {/* Event Type Selector */}
+                    <div className="exam-type-row">
+                      {['exam', 'practical', 'important'].map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`exam-type-btn ${examForm.type === t ? 'exam-type-active' : ''}`}
+                          onClick={() => setExamForm(f => ({ ...f, type: t }))}
+                        >
+                          {t === 'exam' ? '📝 Exam' : t === 'practical' ? '🔬 Practical' : '📌 Important'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Title */}
+                    <div className="exam-field">
+                      <label className="exam-label">Title</label>
+                      <input
+                        type="text"
+                        className="input py-2 text-sm"
+                        placeholder={examForm.type === 'exam' ? 'e.g., Pattern Recognition ETE' : examForm.type === 'practical' ? 'e.g., DL Lab Practical' : 'e.g., Project Submission'}
+                        value={examForm.subject}
+                        onChange={e => setExamForm(f => ({ ...f, subject: e.target.value }))}
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* Date */}
+                    <div className="exam-field">
+                      <label className="exam-label">Date</label>
+                      <input
+                        type="date"
+                        className="input py-2 text-sm"
+                        value={examForm.date}
+                        onChange={e => setExamForm(f => ({ ...f, date: e.target.value }))}
+                      />
+                    </div>
+
+                    {/* Time Range */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="exam-field">
+                        <label className="exam-label">From</label>
+                        <input
+                          type="time"
+                          className="input py-2 text-sm"
+                          value={examForm.timeFrom}
+                          onChange={e => setExamForm(f => ({ ...f, timeFrom: e.target.value }))}
+                        />
+                      </div>
+                      <div className="exam-field">
+                        <label className="exam-label">To</label>
+                        <input
+                          type="time"
+                          className="input py-2 text-sm"
+                          value={examForm.timeTo}
+                          onChange={e => setExamForm(f => ({ ...f, timeTo: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Room */}
+                    <div className="exam-field">
+                      <label className="exam-label">Room / Location</label>
+                      <input
+                        type="text"
+                        className="input py-2 text-sm"
+                        placeholder="e.g., Room 204, Block 3"
+                        value={examForm.room}
+                        onChange={e => setExamForm(f => ({ ...f, room: e.target.value }))}
+                      />
+                    </div>
+
+                    {/* Notes */}
+                    <div className="exam-field">
+                      <label className="exam-label">Notes</label>
+                      <textarea
+                        className="input py-2 text-sm"
+                        placeholder="Any notes..."
+                        rows={2}
+                        value={examForm.notes}
+                        onChange={e => setExamForm(f => ({ ...f, notes: e.target.value }))}
+                        style={{ resize: 'vertical', minHeight: '48px' }}
+                      />
+                    </div>
+
+                    {/* Submit */}
+                    <button type="submit" className="exam-submit-btn">
+                      <Plus size={16}/> Add {examForm.type === 'exam' ? 'Exam' : examForm.type === 'practical' ? 'Practical' : 'Event'}
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {(() => {
               if (upcommingExams.length === 0) {
@@ -179,12 +303,21 @@ export default function OverviewMode() {
               const nearest = withDays[0];
               const rest = withDays.slice(1);
               const nearestDate = new Date(nearest.date);
+              const typeEmoji = (t) => t === 'practical' ? '🔬' : t === 'important' ? '📌' : '📝';
+              const typeLabel = (t) => t === 'practical' ? 'PRACTICAL' : t === 'important' ? 'IMPORTANT' : 'EXAM';
 
               return (
                 <div className="flex-col gap-3">
-                  {/* === HERO: Closest Exam === */}
+                  {/* === HERO: Closest Event === */}
                   <div className="nearest-exam-hero">
-                    <div className="nearest-label">NEXT EXAM</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="nearest-label">{typeEmoji(nearest.type)} NEXT {typeLabel(nearest.type)}</div>
+                      {nearest.id && (
+                        <button onClick={() => deleteExam(nearest.id)} className="exam-delete-btn" title="Remove">
+                          <Trash2 size={14}/>
+                        </button>
+                      )}
+                    </div>
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-bold text-lg" style={{ color: 'var(--accent-orange)' }}>
                         <span className="animate-pulse mr-1">🔥</span>
@@ -195,22 +328,27 @@ export default function OverviewMode() {
                         <span className="nearest-unit">{nearest.daysLeft === 1 ? 'day' : 'days'} left</span>
                       </div>
                     </div>
-                    <div className="flex gap-4 text-sm items-center font-mono" style={{ color: 'var(--text-muted)' }}>
-                      <div className="flex gap-1.5 items-center">
+                    <div className="flex gap-4 text-sm items-center font-mono" style={{ color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                      <div className="flex items-center" style={{ gap: '6px' }}>
                         <Calendar size={14} />
                         <span>{nearestDate.toLocaleString('default', { weekday: 'short' })}, {nearestDate.toLocaleString('default', { month: 'short' })} {nearestDate.getDate()}</span>
                       </div>
-                      <div className="flex gap-1.5 items-center">
+                      <div className="flex items-center" style={{ gap: '6px' }}>
                         <Clock size={14} />
                         <span>{nearest.time || '13:30 - 16:30'}</span>
                       </div>
+                      {nearest.room && (
+                        <div className="flex items-center" style={{ gap: '6px' }}>
+                          <MapPin size={14} />
+                          <span>{nearest.room}</span>
+                        </div>
+                      )}
                     </div>
                     {nearest.notes && (
                       <div className="text-xs mt-2 p-2 rounded-md italic" style={{ color: 'var(--text-muted)', background: 'rgba(249,115,22,0.08)' }}>
                         {nearest.notes}
                       </div>
                     )}
-                    {/* Mini progress bar showing urgency */}
                     <div className="nearest-urgency-bar mt-3">
                       <div className="nearest-urgency-fill" style={{ width: `${Math.max(5, 100 - nearest.daysLeft * 3)}%` }}></div>
                     </div>
@@ -219,7 +357,7 @@ export default function OverviewMode() {
                     </div>
                   </div>
 
-                  {/* === REST OF EXAMS === */}
+                  {/* === REST OF EVENTS === */}
                   {rest.map((e, i) => {
                     const displayDate = new Date(e.date);
                     const monthStr = displayDate.toLocaleString('default', { month: 'short' });
@@ -229,17 +367,30 @@ export default function OverviewMode() {
                     return (
                       <div key={e.id || i} className="exam-rest-card">
                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                           <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{e.subject}</span>
-                           <span className="exam-days-badge" style={{
-                             background: e.daysLeft <= 7 ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.06)',
-                             color: e.daysLeft <= 7 ? '#F97316' : 'var(--text-muted)'
-                           }}>
-                             {e.daysLeft}d left
-                           </span>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                             <span className="exam-type-indicator" data-type={e.type || 'exam'}>{typeEmoji(e.type)}</span>
+                             <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{e.subject}</span>
+                           </div>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                             <span className="exam-days-badge" style={{
+                               background: e.daysLeft <= 7 ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.06)',
+                               color: e.daysLeft <= 7 ? '#F97316' : 'var(--text-muted)'
+                             }}>
+                               {e.daysLeft}d left
+                             </span>
+                             {e.id && (
+                               <button onClick={() => deleteExam(e.id)} className="exam-delete-btn" title="Remove">
+                                 <Trash2 size={12}/>
+                               </button>
+                             )}
+                           </div>
                          </div>
-                         <div style={{ display: 'flex', gap: '16px', color: 'var(--text-muted)', fontSize: '0.75rem', alignItems: 'center', fontFamily: 'var(--font-mono)', marginTop: '6px' }}>
+                         <div style={{ display: 'flex', gap: '14px', color: 'var(--text-muted)', fontSize: '0.75rem', alignItems: 'center', fontFamily: 'var(--font-mono)', marginTop: '6px', flexWrap: 'wrap' }}>
                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Calendar size={12}/><span>{weekday}, {monthStr} {dayStr}</span></div>
                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Clock size={12}/><span>{e.time || '13:30 - 16:30'}</span></div>
+                           {e.room && (
+                             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}><MapPin size={12}/><span>{e.room}</span></div>
+                           )}
                          </div>
                          {e.notes && (
                            <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', padding: '6px 8px', background: 'var(--bg-tertiary)', borderRadius: '6px', fontStyle: 'italic', marginTop: '6px' }}>{e.notes}</div>
@@ -403,6 +554,79 @@ export default function OverviewMode() {
         .exam-days-badge {
           font-size: 0.7rem; font-weight: 700; font-family: var(--font-mono);
           padding: 3px 10px; border-radius: 999px; letter-spacing: 0.02em;
+        }
+
+        /* ---- Exam Add Toggle ---- */
+        .exam-add-toggle {
+          display: flex; align-items: center; gap: 6px;
+          font-size: 0.75rem; font-weight: 600;
+          padding: 6px 14px; border-radius: 999px;
+          background: rgba(0,255,136,0.1); color: var(--accent-xp);
+          border: 1px solid rgba(0,255,136,0.2);
+          cursor: pointer; transition: all 0.15s;
+        }
+        .exam-add-toggle:hover {
+          background: rgba(0,255,136,0.18); border-color: rgba(0,255,136,0.35);
+        }
+
+        /* ---- Rich Exam Form ---- */
+        .exam-form {
+          display: flex; flex-direction: column; gap: 14px;
+          padding: 20px; margin-bottom: 20px;
+          background: var(--bg-tertiary);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 12px;
+        }
+        .exam-type-row {
+          display: flex; gap: 8px;
+        }
+        .exam-type-btn {
+          flex: 1; padding: 10px 8px; border-radius: 8px;
+          font-size: 0.8rem; font-weight: 600; cursor: pointer;
+          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+          color: var(--text-muted); transition: all 0.15s; text-align: center;
+        }
+        .exam-type-btn:hover {
+          background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15);
+        }
+        .exam-type-btn.exam-type-active {
+          background: rgba(0,255,136,0.08); border-color: var(--accent-xp);
+          color: var(--accent-xp);
+        }
+        .exam-field {
+          display: flex; flex-direction: column; gap: 4px;
+        }
+        .exam-label {
+          font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
+          text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .exam-submit-btn {
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          width: 100%; padding: 12px;
+          font-size: 0.9rem; font-weight: 700;
+          border-radius: 10px; border: none; cursor: pointer;
+          background: linear-gradient(135deg, var(--accent-xp), #06B6D4);
+          color: #000; transition: all 0.2s;
+        }
+        .exam-submit-btn:hover {
+          opacity: 0.9; transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(0,255,136,0.2);
+        }
+        .exam-submit-btn:active {
+          transform: translateY(0); opacity: 1;
+        }
+
+        /* ---- Delete Button ---- */
+        .exam-delete-btn {
+          display: flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: 6px;
+          background: transparent; border: 1px solid transparent;
+          color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+          flex-shrink: 0;
+        }
+        .exam-delete-btn:hover {
+          background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2);
+          color: #EF4444;
         }
       `}</style>
     </div>
