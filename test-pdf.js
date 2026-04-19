@@ -1,5 +1,11 @@
+// using .mjs or running with --experimental-modules
 import fs from 'fs';
-import pdfParse from 'pdf-parse';
-
-const buffer = fs.readFileSync('package.json');
-console.log(buffer.length);
+async function run() {
+  try {
+    const pdfParse = (await import('pdf-parse')).default;
+    console.log("Success");
+  } catch(e) {
+    console.log("Failed:", e);
+  }
+}
+run();

@@ -12,32 +12,35 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Read file buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Use pdf-parse to extract text
-    let pdfParse;
+    let PDFParser;
     try {
-      pdfParse = (await import('pdf-parse')).default;
+      PDFParser = (await import('pdf2json')).default;
     } catch (e) {
-      console.error('Failed to import pdf-parse:', e);
+      console.error('Failed to import pdf2json:', e);
       return NextResponse.json({ error: 'System error: PDF parser missing. Try pasting notes manually.' }, { status: 500 });
     }
-    
-    let data;
-    try {
-      data = await pdfParse(buffer);
-    } catch (e) {
-      console.error('Failed to parse buffer:', e);
-      return NextResponse.json({ error: 'Failed to read this PDF. It might be corrupted or protected.' }, { status: 500 });
-    }
+
+    const textPayload = await new Promise((resolve, reject) => {
+      const pdfParser = new PDFParser(null, 1);
+      
+      pdfParser.on("pdfParser_dataError", errData => reject(errData.parserError));
+      pdfParser.on("pdfParser_dataReady", pdfData => {
+        const text = pdfParser.getRawTextContent();
+        resolve(text);
+      });
+
+      pdfParser.parseBuffer(buffer);
+    });
 
     return NextResponse.json({
-      text: data.text,
-      numPages: data.numpages,
-      info: data.info,
+      text: textPayload,
+      numPages: 0,
+      info: 'Parsed via pdf2json'
     });
+
   } catch (error) {
     console.error('PDF parse error:', error);
     return NextResponse.json(
