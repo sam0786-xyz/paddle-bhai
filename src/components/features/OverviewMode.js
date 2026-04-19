@@ -101,7 +101,16 @@ export default function OverviewMode() {
   const progress = ((workTime * 60 - timeLeft) / (workTime * 60)) * 100;
   
   // Sorted Exams
-  const upcommingExams = [...exams].sort((a,b) => new Date(a.date) - new Date(b.date)).filter(e => new Date(e.date) >= new Date(todayStr));
+  const upcommingExams = [...exams]
+    .filter(e => new Date(e.date) >= new Date(todayStr))
+    .sort((a, b) => {
+      const dateDiff = new Date(a.date) - new Date(b.date);
+      if (dateDiff !== 0) return dateDiff;
+      // Same date — sort by start time
+      const timeA = (a.time || '').split('-')[0].trim();
+      const timeB = (b.time || '').split('-')[0].trim();
+      return timeA.localeCompare(timeB);
+    });
 
   return (
     <div className="overview-container">
