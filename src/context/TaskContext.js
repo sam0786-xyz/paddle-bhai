@@ -55,21 +55,29 @@ export function TaskProvider({ children }) {
 
       // Then try Supabase (override if fresher)
       try {
-        const { data } = await supabase.from('app_state').select('state_data').eq('id', '00000000-0000-0000-0000-000000000000').single();
+        const { data } = await supabase.from('app_state').select('state_data, updated_at').eq('id', '00000000-0000-0000-0000-000000000000').single();
         
         if (data && data.state_data) {
-          finalState = data.state_data;
+          const supabaseTime = new Date(data.updated_at || Date.now()).getTime();
+          const localTime = finalState._lastUpdated || 0;
+          
+          if (supabaseTime >= localTime || !finalState._lastUpdated) {
+            finalState = data.state_data;
+            finalState._lastUpdated = supabaseTime;
+          }
         } else {
           // First time — seed Supabase
-          await supabase.from('app_state').upsert({ id: '00000000-0000-0000-0000-000000000000', state_data: finalState });
+          const now = Date.now();
+          finalState._lastUpdated = now;
+          await supabase.from('app_state').upsert({ id: '00000000-0000-0000-0000-000000000000', state_data: finalState, updated_at: new Date(now).toISOString() });
         }
       } catch (err) {
         console.warn('Supabase load failed, using localStorage:', err.message);
       }
 
-      // Ensure exams are never empty
-      if (!finalState.exams || finalState.exams.length === 0) {
-        finalState.exams = MOCK_EXAMS;
+      // Ensure exams is at least an array, but don't force MOCK_EXAMS if user deleted them
+      if (!finalState.exams) {
+        finalState.exams = [];
       }
       
       setState(finalState);
@@ -82,16 +90,19 @@ export function TaskProvider({ children }) {
   // Persist to both Supabase and localStorage on change
   useEffect(() => {
     if (loaded && !skipNextSync.current) {
+      const now = Date.now();
+      const stateToSave = { ...state, _lastUpdated: now };
+      
       // Always save to localStorage (instant, reliable)
       try {
-        localStorage.setItem('padhleBhai_state', JSON.stringify(state));
+        localStorage.setItem('padhleBhai_state', JSON.stringify(stateToSave));
       } catch {}
       
       // Also sync to Supabase
       supabase.from('app_state').upsert({ 
         id: '00000000-0000-0000-0000-000000000000', 
-        state_data: state, 
-        updated_at: new Date().toISOString() 
+        state_data: stateToSave, 
+        updated_at: new Date(now).toISOString() 
       }).then(({error}) => { if (error) console.error("Supabase sync err:", error) });
     }
     if (loaded) skipNextSync.current = false;
