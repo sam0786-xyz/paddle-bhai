@@ -55,21 +55,21 @@ export function TaskProvider({ children }) {
 
       // Then try Supabase (override if fresher)
       try {
-        const { data } = await supabase.from('app_state').select('state_data, updated_at').eq('id', '00000000-0000-0000-0000-000000000000').single();
+        const { data } = await supabase.from('app_state').select('state_data').eq('id', '00000000-0000-0000-0000-000000000000').single();
         
         if (data && data.state_data) {
-          const supabaseTime = new Date(data.updated_at || Date.now()).getTime();
+          const supabaseTime = data.state_data._lastUpdated || 0;
           const localTime = finalState._lastUpdated || 0;
           
           if (supabaseTime >= localTime || !finalState._lastUpdated) {
             finalState = data.state_data;
-            finalState._lastUpdated = supabaseTime;
+            finalState._lastUpdated = supabaseTime || Date.now();
           }
         } else {
           // First time — seed Supabase
           const now = Date.now();
           finalState._lastUpdated = now;
-          await supabase.from('app_state').upsert({ id: '00000000-0000-0000-0000-000000000000', state_data: finalState, updated_at: new Date(now).toISOString() });
+          await supabase.from('app_state').upsert({ id: '00000000-0000-0000-0000-000000000000', state_data: finalState });
         }
       } catch (err) {
         console.warn('Supabase load failed, using localStorage:', err.message);
@@ -101,8 +101,7 @@ export function TaskProvider({ children }) {
       // Also sync to Supabase
       supabase.from('app_state').upsert({ 
         id: '00000000-0000-0000-0000-000000000000', 
-        state_data: stateToSave, 
-        updated_at: new Date(now).toISOString() 
+        state_data: stateToSave
       }).then(({error}) => { if (error) console.error("Supabase sync err:", error) });
     }
     if (loaded) skipNextSync.current = false;

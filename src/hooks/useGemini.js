@@ -6,7 +6,7 @@ export function useGemini() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const generate = useCallback(async (prompt, expectJson = true) => {
+  const generate = useCallback(async (prompt, expectJson = true, customApiKey = null) => {
     setLoading(true);
     setError(null);
 
@@ -14,7 +14,7 @@ export function useGemini() {
       const res = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, type: expectJson ? 'json' : 'text' }),
+        body: JSON.stringify({ prompt, type: expectJson ? 'json' : 'text', customApiKey }),
       });
 
       if (!res.ok) {

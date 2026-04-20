@@ -15,6 +15,10 @@ export default function StudyMode() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [syllabus, setSyllabus] = useState('');
   const [examDates, setExamDates] = useState('');
+  const [customApiKey, setCustomApiKey] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('padhleBhai_customApiKey') || '';
+    return '';
+  });
   const [generatedPlan, setGeneratedPlan] = useState(null);
   const [mcqQuiz, setMcqQuiz] = useState(null);
   const [mcqAnswers, setMcqAnswers] = useState({});
@@ -88,7 +92,7 @@ export default function StudyMode() {
       const finalPrompt = knowledgeContext + rawPrompt;
 
       setGenStatus('Generating Roadmap (may take 20s)...');
-      const data = await generate(finalPrompt, true);
+      const data = await generate(finalPrompt, true, customApiKey);
       
       if (!data || typeof data !== 'object') {
         throw new Error('AI returned an invalid plan format. Please try again or check your API key.');
@@ -116,7 +120,7 @@ export default function StudyMode() {
         ? projectContexts.map(c => c.text).join('\n---\n')
         : '';
       const prompt = PROMPTS.GENERATE_MCQ_QUIZ(context, 'General AI/ML & CSE', 5);
-      const data = await generate(prompt, true);
+      const data = await generate(prompt, true, customApiKey);
       if (data) {
         setMcqQuiz(data);
         setMcqAnswers({});
@@ -219,9 +223,25 @@ export default function StudyMode() {
 
         {/* Right Col: AI Engine */}
         <div className="flex-col gap-6">
-          <section className="card flex-col">
+           <section className="card flex-col">
              <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><Sparkles size={18}/> Engine Configuration</h2>
              <div className="flex-col gap-4 mb-4">
+               <div className="input-group">
+                 <label className="text-xs text-secondary mb-1 flex justify-between">
+                    <span>Custom Gemini API Key (Bypass Quota)</span>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-accent-cyan hover:underline hover:text-white" title="Get a free Gemini API key">Get Key</a>
+                 </label>
+                 <input 
+                   type="password" 
+                   className="input text-sm font-mono" 
+                   placeholder="AIzaSy..." 
+                   value={customApiKey} 
+                   onChange={e => {
+                     setCustomApiKey(e.target.value);
+                     localStorage.setItem('padhleBhai_customApiKey', e.target.value);
+                   }} 
+                 />
+               </div>
                <div className="input-group">
                  <label className="text-xs text-secondary mb-1">Additional Guidance / Topics</label>
                  <textarea className="input text-sm" rows={3} placeholder="Tell the AI what to focus on..." value={syllabus} onChange={e=>setSyllabus(e.target.value)} />

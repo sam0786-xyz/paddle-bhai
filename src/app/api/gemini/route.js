@@ -11,16 +11,15 @@ const MODEL_CHAIN = [
 
 export async function POST(request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const { prompt, type, customApiKey } = await request.json();
+    const activeKey = customApiKey || process.env.GEMINI_API_KEY;
 
-    if (!apiKey) {
+    if (!activeKey) {
       return NextResponse.json(
-        { error: 'Gemini API key not configured. Add GEMINI_API_KEY to your .env file.' },
+        { error: 'Gemini API key not configured. Please provide a custom API key or add GEMINI_API_KEY to your .env file.' },
         { status: 500 }
       );
     }
-
-    const { prompt, type } = await request.json();
 
     if (!prompt) {
       return NextResponse.json(
@@ -29,7 +28,7 @@ export async function POST(request) {
       );
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const genAI = new GoogleGenerativeAI(activeKey);
 
     let text = null;
     let lastError = null;
