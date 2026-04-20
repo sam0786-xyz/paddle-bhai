@@ -40,6 +40,20 @@ export default function OverviewMode() {
     setNewTaskTitle('');
   };
 
+  const authorizeAction = () => {
+    const adminPin = process.env.NEXT_PUBLIC_ADMIN_PIN || 'okay18';
+    if (typeof window !== 'undefined') {
+      if (sessionStorage.getItem('padhleBhai_adminAuth') === adminPin) return true;
+      const input = window.prompt("Enter Admin PIN to modify Exam Timeline:");
+      if (input === adminPin) {
+        sessionStorage.setItem('padhleBhai_adminAuth', adminPin);
+        return true;
+      }
+      alert("Unauthorized: Invalid PIN");
+    }
+    return false;
+  };
+
   const handleAddExam = (e) => {
     e.preventDefault();
     if (!examForm.subject.trim() || !examForm.date) return;
@@ -205,7 +219,7 @@ export default function OverviewMode() {
               <h3 className="font-medium text-lg flex items-center gap-2"><Calendar size={18}/> Exam Timeline</h3>
               <button
                 className="exam-add-toggle"
-                onClick={() => showExamForm ? cancelExamForm() : setShowExamForm(true)}
+                onClick={() => showExamForm ? cancelExamForm() : (authorizeAction() && setShowExamForm(true))}
               >
                 {showExamForm ? <X size={16}/> : <Plus size={16}/>}
                 {showExamForm ? 'Cancel' : 'Add Event'}
@@ -345,10 +359,10 @@ export default function OverviewMode() {
                       <div className="nearest-label">{typeEmoji(nearest.type)} NEXT {typeLabel(nearest.type)}</div>
                       {nearest.id && (
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          <button onClick={() => startEditExam(nearest)} className="exam-edit-btn" title="Edit">
+                          <button onClick={() => authorizeAction() && startEditExam(nearest)} className="exam-edit-btn" title="Edit">
                             <Pencil size={14}/>
                           </button>
-                          <button onClick={() => deleteExam(nearest.id)} className="exam-delete-btn" title="Remove">
+                          <button onClick={() => authorizeAction() && deleteExam(nearest.id)} className="exam-delete-btn" title="Remove">
                             <Trash2 size={14}/>
                           </button>
                         </div>
@@ -416,10 +430,10 @@ export default function OverviewMode() {
                              </span>
                              {e.id && (
                                <div style={{ display: 'flex', gap: '4px' }}>
-                                 <button onClick={() => startEditExam(e)} className="exam-edit-btn" title="Edit">
+                                 <button onClick={() => authorizeAction() && startEditExam(e)} className="exam-edit-btn" title="Edit">
                                    <Pencil size={12}/>
                                  </button>
-                                 <button onClick={() => deleteExam(e.id)} className="exam-delete-btn" title="Remove">
+                                 <button onClick={() => authorizeAction() && deleteExam(e.id)} className="exam-delete-btn" title="Remove">
                                    <Trash2 size={12}/>
                                  </button>
                                </div>
