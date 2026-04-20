@@ -6,7 +6,10 @@ export const dynamic = 'force-dynamic';
 
 // Model fallback chain: try each in order
 const MODEL_CHAIN = [
-  'gemini-2.5-pro'
+  'gemini-2.5-pro',
+  'gemini-1.5-pro',
+  'gemini-1.5-flash',
+  'gemini-pro'
 ];
 
 export async function POST(request) {
